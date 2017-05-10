@@ -6,12 +6,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
-import android.text.Layout;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -60,11 +63,16 @@ public class WeatherActivity extends AppCompatActivity {
 
     private ImageView mBackground;
     private SharedPreferences preferences;
+    public SwipeRefreshLayout mRefreshLayout;
+    private String weatherId;
+    public DrawerLayout mDrawerLayout;
+    private Button mNavButton;
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Build.VERSION.SDK_INT >= 21){
+        if (Build.VERSION.SDK_INT >= 21) {
             View view = getWindow().getDecorView();
             //状态栏与背景图融为一体   布局中设置 fitsSystemWindows=true   给状态栏留出一定空间
             view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
@@ -96,15 +104,23 @@ public class WeatherActivity extends AppCompatActivity {
 
         mBackground = (ImageView) findViewById(R.id.image_background);
 
+        mRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_layout);
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mNavButton = (Button) findViewById(R.id.nav_button);
+
+        initRefresh();
+
+        initDrawLayout();
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         String weatherString = preferences.getString("weather", "");
 
         if (!TextUtils.isEmpty(weatherString)) {
             Weather weather = Utility.handleWeatherResponse(weatherString);
+            weatherId = weather.basic.weatherId;
             showWeatherInfo(weather);
         } else {
-            String weatherId = getIntent().getStringExtra("weather_id");
+            weatherId = getIntent().getStringExtra("weather_id");
             mWeatherLayout.setVisibility(View.INVISIBLE);
             requestWeather(weatherId);
         }
@@ -116,6 +132,25 @@ public class WeatherActivity extends AppCompatActivity {
         }
 
 
+    }
+
+    private void initDrawLayout() {
+        mNavButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mDrawerLayout.openDrawer(Gravity.START);
+            }
+        });
+    }
+
+    private void initRefresh() {
+        mRefreshLayout.setColorSchemeResources(R.color.colorAccent,R.color.colorPrimary);
+        mRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(weatherId);
+            }
+        });
     }
 
     private void loadPic() {
@@ -142,7 +177,7 @@ public class WeatherActivity extends AppCompatActivity {
         });
     }
 
-    private void requestWeather(final String weatherId) {
+    public void requestWeather(final String weatherId) {
 
         String url = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=638acb50eb2545b480955672e8b59e7f";
         Log.e("GKZ", url);
@@ -153,6 +188,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(getApplicationContext(), "获取天气信息失败onFailure", Toast.LENGTH_LONG).show();
+                        mRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -173,6 +209,7 @@ public class WeatherActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(getApplicationContext(), "获取天气信息失败", Toast.LENGTH_LONG).show();
                         }
+                        mRefreshLayout.setRefreshing(false);
                     }
                 });
 
