@@ -1,5 +1,6 @@
 package com.example.yt.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
@@ -24,6 +25,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.example.yt.coolweather.gson.Forecast;
 import com.example.yt.coolweather.gson.Weather;
+import com.example.yt.coolweather.service.AutoUpdateService;
 import com.example.yt.coolweather.util.HttpUtil;
 import com.example.yt.coolweather.util.Utility;
 
@@ -215,10 +217,13 @@ public class WeatherActivity extends AppCompatActivity {
 
             }
         });
+        loadPic();
 
     }
 
     private void showWeatherInfo(Weather weather) {
+
+        startService(new Intent(WeatherActivity.this, AutoUpdateService.class));
 
         String cityName = weather.basic.cityName;
 
